@@ -15,4 +15,15 @@ defmodule Tapestry.DynamicSupervisor do
     spec = %{id: id_num, start: {Tapestry.Server, :start_link, []}}
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
+
+  def start_children(0, list) do
+    list
+  end
+  def start_children(num_children, list) do
+    uuid = num_children #TODO change to generate uid
+    {:ok, pid} = start_child(uuid)
+    list = [%{uid: uuid, pid: pid} | list]
+    IO.puts 'child created'
+    start_children(num_children - 1, list)
+  end
 end
