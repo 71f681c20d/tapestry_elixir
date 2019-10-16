@@ -17,6 +17,10 @@ defmodule Tapestry.Server do
     called_list = [hd | called_list]
     lst = Enum.uniq(List.flatten([tl | res]))
     lst2 = Enum.filter(lst, fn el -> !Enum.member?(called_list, el) end)
+    lst2 = Enum.filter(lst2, fn x -> x != [] end)
+    IO.puts('--')
+    IO.inspect(from)
+    IO.inspect(lst2)
     join(lst2, called_list, from)
   end
 
@@ -31,15 +35,15 @@ defmodule Tapestry.Server do
 
   def join_from(from, to) do
     pid_from = elem(Map.fetch(from, :pid), 1)
-    GenServer.cast(pid_from, {:join_from, from, to})
+    GenServer.call(pid_from, {:join_from, from, to})
   end
 
-  def handle_cast({:join_from, from, to}, state) do
+  def handle_call({:join_from, from, to}, _from, state) do
     res = join([to], [], from)
     neighbors = elem(Map.fetch(state, :neighbors), 1)
     neighbors = Enum.filter([neighbors | res], fn x -> x != [] end)
     state = Map.put(state, :neighbors, neighbors)
-    {:noreply, state}
+    {:reply, state, state}
   end
 
   def get_neighbors(node) do
