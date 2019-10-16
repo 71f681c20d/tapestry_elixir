@@ -18,9 +18,6 @@ defmodule Tapestry.Server do
     lst = Enum.uniq(List.flatten([tl | res]))
     lst2 = Enum.filter(lst, fn el -> !Enum.member?(called_list, el) end)
     lst2 = Enum.filter(lst2, fn x -> x != [] end)
-    IO.puts('--')
-    IO.inspect(from)
-    IO.inspect(lst2)
     join(lst2, called_list, from)
   end
 
