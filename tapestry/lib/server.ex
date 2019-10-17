@@ -1,6 +1,7 @@
 defmodule Tapestry.Server do
   use GenServer
 
+  #init
   def start_link do
       GenServer.start_link(__MODULE__, %{neighbors: []})
   end
@@ -9,6 +10,7 @@ defmodule Tapestry.Server do
     {:ok, state}
   end
 
+  #join
   def join([], called_list, _from) do called_list end
   def join(to_call_list, called_list, from) do
     [hd | tl] = to_call_list
@@ -26,6 +28,7 @@ defmodule Tapestry.Server do
     neighbors2 = [from_data | neighbors]
     neighbors2 = Enum.uniq(neighbors2)
     neighbors2 = Enum.filter(neighbors2, fn x -> x != [] end)
+    #TODO Filter neighbors2 and build DHT
     state = Map.put(state, :neighbors, neighbors2)
     {:reply, neighbors, state}
   end
