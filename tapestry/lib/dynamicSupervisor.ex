@@ -23,7 +23,6 @@ defmodule Tapestry.DynamicSupervisor do
     uuid = num_children #TODO change to generate uid
     {:ok, pid} = start_child(uuid)
     list = [%{uid: uuid, pid: pid} | list]
-    IO.puts 'child created'
     start_children(num_children - 1, list)
   end
 end
