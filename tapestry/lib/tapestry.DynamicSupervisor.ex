@@ -5,8 +5,8 @@ defmodule Tapestry.DynamicSupervisor do
     DynamicSupervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def start_child(id_num) do # TODO: change the IDs to hashes
-    spec = %{id: id_num, start: {Project2.Server, :start_link, []}}
+  def start_child(id_num) do
+    spec = %{id: id_num, start: {Tapestry.Server, :start_link, []}}
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
@@ -35,6 +35,18 @@ defmodule Tapestry.DynamicSupervisor do
       other ->
         other
     end
+  end
+
+  def start_children(0, list) do
+    list
+  end
+  def start_children(num_children, list) do
+    uuid = num_children
+    # Assume Base 16 hash, hashes are 16 bytes wide, DHTs are 16 bytes deep
+    {guid | _} = String.split_at(:crypto.hash(:sha, "whatever #{guid}") |> Base.encode16 |> String.downcase, 16)
+    {:ok, pid} = start_child(guid)
+    list = [%{uid: guid, pid: pid} | list]
+    start_children(num_children - 1, list)
   end
 
 end
