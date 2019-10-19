@@ -83,39 +83,27 @@ defmodule Tapestry.Server do
     {:reply, neighbors, state}
   end
 
-  def route_to_object (from, to, level) do
+  def route_to_object (from, to, level) do  # TODO: add uni-cast
+    neighbors = elem(Map.fetch(state, :neighbors), level)
+    # Multi-cast
+    when level > 0, do: Enum.map(neighbors, fn x -> if check(x, to)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:route_to_object, x, level-1}) end) # TODO: get x's pid to cast
+    [from]  # Evals to the closest possible node, and each node along the way
+  end
+
+  def route_to_node (from, to, level) do  # TODO: Ensure exact suffix match
     neighbors = elem(Map.fetch(state, :neighbors), level)
     when level > 0, do: Enum.map(neighbors, fn x -> if check(x, to)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:route_to_object, x, level-1}) end) # TODO: get x's pid to cast
-
+    [from]  # Evals to the closest possible node, and each node along the way
   end
 
-  def route_to_node (from, to, level) do
-    pid_from = elem(Map.fetch(from, :pid), 1)
-    neighbors = elem(Map.fetch(state, :neighbors), level)
-
-    if level > 0 do
-      # look for a level+1 suffix match in the levelth row of the DHT
-      next_peers = List.flatten(for x <- neighbors do   # Multi-cast to all level+1 matches
-      Enum.map(next_peers, fn x -> if check(x, neighbors)>level, do: GenServer.cast(x, {:route_to_object, x, level-1}) end) # TODO: get x's pid to cast
-    else
-      [from]  # end of the routing algorithm
-    end
-  end
-
-  def handle_cast({:route_to_object, to, level}, _from, state) do
-
-    # IO.puts 'surrogate routing'
+  def handle_cast({:route_to_object, from, to, level}, _from, state) do
     from_guid = elem(Map.fetch(state, :guid), 1)
     dest_guid = elem(Map.fetch(to, :uid), 1)
-    alpha = check(from_guid, dest_guid)
-
-    neighbors = elem(Map.fetch(state, :neighbors), alpha)
-
-    neighbors2 = Enum.filter(neighbors2, fn x -> x != [] end) |> Enum.uniq
-
+    route_to_object(from, to, level-1)
   end
   def handle_cast({:route_to_node, to}, _from, state) do
-    IO.puts 'route to exact match'
+    from_guid = elem(Map.fetch(state, :guid), 1)
     dest_guid = elem(Map.fetch(to, :uid), 1)
+    route_to_node(from, to, level-1)
   end
 end
