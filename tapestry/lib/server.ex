@@ -2,8 +2,8 @@ defmodule Tapestry.Server do
   use GenServer
 
   #init
-  def start_link do
-      GenServer.start_link(__MODULE__, %{name: neighbors: []})
+  def start_link (guid) do
+      GenServer.start_link(__MODULE__, %{guid: "#{guid}", neighbors: []})
   end
 
   def init(state) do
@@ -53,7 +53,9 @@ defmodule Tapestry.Server do
 
   defp check(_hash, "", level), do: :ok end
   defp check("", _hash, level), do: :ok end
-  defp check([hf|tf],[ht|tt], level) do
+  defp check(from_hash,to_hash], level) do
+    {hf|ht} = from_hash |> String.next_grapheme
+    {tf|tt} = to_hash |> String.next_grapheme
     cond do
       hf == ht -> check(tf,tt,level+1)
       hf != ht -> level
@@ -61,12 +63,14 @@ defmodule Tapestry.Server do
   end
 
   defp suffix_distance(from, to) do    # computes the suffix distance metric
-    pid_from = elem(Map.fetch(from, :pid), 1)
-    GenServer.call(pid_from, {:prefix_distance, from, to})
+    pid_from = elem(Map.fetch(from, :pid), 1)[hf|tf]
+    from_guid = elem(Map.fetch(from, :uid), 1)
+    to_guid = elem(Map.fetch(to, :uid), 1)
+    GenServer.call(pid_from, {:suffix_distance, from_guid, to_guid})
   end
 
-  def handle_call({:suffix_distance, from, to}, _from, state) do
-    {:reply, check(from,to,0), state}
+  def handle_call({:suffix_distance, from_guid, to_guid}, _from, state) do
+    {:reply, check(from_guid,to_guid,0), state}
   end
 
   def get_neighbors(node) do
@@ -79,24 +83,39 @@ defmodule Tapestry.Server do
     {:reply, neighbors, state}
   end
 
-  def route_to_object (to) do
-    pid_from = elem(Map.fetch(from, :pid), 1)
-    GenServer.cast(pid_from, {:route_to_object, to})
-  end
-
-  def route_to_node (to) do
-    pid_from = elem(Map.fetch(from, :pid), 1)
-    GenServer.cast(pid_from, {:route_to_node, to})
-  end
-
-
-  def handle_cast({:route_to_object, to}, _from, state) do
-    IO.puts 'surrogate routing'
+  def route_to_object (from, to, level) do
     neighbors = elem(Map.fetch(state, :neighbors), level)
+    when level > 0, do: Enum.map(neighbors, fn x -> if check(x, to)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:route_to_object, x, level-1}) end) # TODO: get x's pid to cast
+
+  end
+
+  def route_to_node (from, to, level) do
+    pid_from = elem(Map.fetch(from, :pid), 1)
+    neighbors = elem(Map.fetch(state, :neighbors), level)
+
+    if level > 0 do
+      # look for a level+1 suffix match in the levelth row of the DHT
+      next_peers = List.flatten(for x <- neighbors do   # Multi-cast to all level+1 matches
+      Enum.map(next_peers, fn x -> if check(x, neighbors)>level, do: GenServer.cast(x, {:route_to_object, x, level-1}) end) # TODO: get x's pid to cast
+    else
+      [from]  # end of the routing algorithm
+    end
+  end
+
+  def handle_cast({:route_to_object, to, level}, _from, state) do
+
+    # IO.puts 'surrogate routing'
+    from_guid = elem(Map.fetch(state, :guid), 1)
+    dest_guid = elem(Map.fetch(to, :uid), 1)
+    alpha = check(from_guid, dest_guid)
+
+    neighbors = elem(Map.fetch(state, :neighbors), alpha)
+
     neighbors2 = Enum.filter(neighbors2, fn x -> x != [] end) |> Enum.uniq
 
   end
   def handle_cast({:route_to_node, to}, _from, state) do
     IO.puts 'route to exact match'
+    dest_guid = elem(Map.fetch(to, :uid), 1)
   end
 end
