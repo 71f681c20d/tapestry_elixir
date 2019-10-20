@@ -43,7 +43,7 @@ defmodule Tapestry.DynamicSupervisor do
   def start_children(num_children, list) do
     uuid = num_children
     # Assume Base 16 hash, hashes are 16 bytes wide, DHTs are 16 bytes deep
-    {guid | _} = String.split_at(:crypto.hash(:sha, "whatever #{uuid}") |> Base.encode16 |> String.downcase, 16)
+    {guid, _} = String.split_at(String.downcase(Base.encode16(:crypto.hash(:sha, "whatever #{uuid}"))), 16)
     {:ok, pid} = start_child(guid)
     list = [%{uid: guid, pid: pid} | list]
     start_children(num_children - 1, list)

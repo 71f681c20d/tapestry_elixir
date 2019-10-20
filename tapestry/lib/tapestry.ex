@@ -30,7 +30,7 @@ defmodule Tapestry do
     :ok
   end
 
-  defp join_nodes ([]), do: :ok end
+  defp join_nodes([]), do: :ok
   defp join_nodes(list) do
     [h|t]=list
   end
