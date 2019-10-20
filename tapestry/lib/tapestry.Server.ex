@@ -92,9 +92,8 @@ defmodule Tapestry.Server do
   end
 
   defp object_router(from, to, level) do # Uses some multi-casting, as suggested in the paper
-    {_,neighbors} = elem(Map.fetch(state, :neighbors), level) # TODO Lee can you verify this pattern match?
-    if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:object_router, x, level-1}) end)  # TODO: get x's pid to cast
-    [from]  # Evals to the closest possible node, and each node along the way
+    from_pid = elem(Map.fetch(from, :pid), 1)
+    GenServer.cast(from_pid, {:object_router, from, to, level-1})   # TODO: get x's pid to cast
   end
 
   def handle_cast({:object_router, from, to, level}, _from, state) do
@@ -102,7 +101,7 @@ defmodule Tapestry.Server do
     dest_guid = elem(Map.fetch(to, :uid), 1)
     # object_router(from, to, level-1)
     {_,neighbors} = elem(Map.fetch(state, :neighbors), level) # TODO Lee can you verify this pattern match?
-    if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:object_router, x, level-1}) end)  # TODO: get x's pid to cast
+    if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to, 0)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:object_router, x, level-1}) end)  # TODO: get x's pid to cast
     [from]  # Evals to the closest possible node, and each node along the way
   end
 
@@ -111,14 +110,16 @@ defmodule Tapestry.Server do
   end
 
   def node_router(from, to, level) do  # TODO: Ensure exact suffix match
-    {_,neighbors} = elem(Map.fetch(state, :neighbors), level)
-    if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:node_router, x, level-1}) end) # TODO: get x's pid to cast
-    [from]  # Evals to the closest possible node, and each node along the way
+    from_pid = elem(Map.fetch(from, :pid), 1)
+    GenServer.cast(from_pid, {:node_router, from, to, level-1})   # TODO: get x's pid to cast
   end
 
-  def handle_cast({:node_router, to}, _from, state) do
+  def handle_cast({:node_router, from, to, level}, _from, state) do
     from_guid = elem(Map.fetch(state, :guid), 1)
     dest_guid = elem(Map.fetch(to, :uid), 1)
-    node_router(from, to, level-1)
+    # object_router(from, to, level-1)
+    {_,neighbors} = elem(Map.fetch(state, :neighbors), level) # TODO Lee can you verify this pattern match?
+    if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to, 0)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:node_router, x, level-1}) end)  # TODO: get x's pid to cast
+    [from]  # Evals to the closest possible node, and each node along the way
   end
 end
