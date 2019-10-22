@@ -18,11 +18,12 @@ defmodule Tapestry do
     end
   end
 
-  def do_message(from_node, node_list, 0, max) do max end
+  def do_message(_from_node, _node_list, 0, max) do max end
   def do_message(from_node, node_list, num_requests_remaining, max) do
-    from_str = elem(Map.fetch(from_node, :uid), 1)
-    to_str = elem(Map.fetch(Enum.random(node_list), :uid), 1)
-    num_hops = Tapestry.Server.suffix_distance(from_str, to_str) #TODO
+    #from_str = elem(Map.fetch(from_node, :uid), 1)
+    #to_str = elem(Map.fetch(Enum.random(node_list), :uid), 1)
+    #num_hops = Tapestry.Server.suffix_distance(from_str, to_str) #TODO
+    num_hops = Tapestry.Server.send_message(from_node, Enum.random(node_list))
     cond do
       num_hops > max ->
         do_message(from_node, node_list, num_requests_remaining-1, num_hops)

@@ -54,8 +54,8 @@ defmodule Tapestry.Server do
   end
 
   def suffix_distance(guid_from, guid_to), do: suffix_distance(guid_from, guid_to, 0) # computes the suffix distance metric of 2 strings
-  def suffix_distance(hash, "", level), do: level
-  def suffix_distance("", hash, level), do: level
+  def suffix_distance(_hash, "", level), do: level
+  def suffix_distance("", _hash, level), do: level
   def suffix_distance(guid_from, guid_to, level) do
     {hf,tf} = String.next_grapheme(guid_from)
     {ht,tt} = String.next_grapheme(guid_to)
@@ -89,5 +89,60 @@ defmodule Tapestry.Server do
     dht = elem(Map.fetch(state, :neighbors), 1)
     list_of_tuples = Tuple.to_list(dht)
     List.flatten(Enum.map(list_of_tuples, fn x -> Tuple.to_list(x) end))
+  end
+
+  #Route
+
+  def find_next_node(-1, _state, _to_uid) do
+    IO.puts 'ERROR'
+    :error_no_next_node_found
+  end
+  def find_next_node(current_level, state, to_uid) do
+    dht = elem(Map.fetch(state, :neighbors), 1)
+    this_level = Tuple.to_list(elem(dht, current_level))
+    this_level = Enum.filter(this_level, fn x -> x != %{} end)
+    case this_level do
+      [] ->
+        find_next_node(current_level-1, state, to_uid)
+      _ ->
+        choose_best_node(this_level, to_uid)
+    end
+  end
+
+  def choose_best_node(list, to_uid) do choose_best_node(list, to_uid, 0, nil) end
+  def choose_best_node([], _to_uid, _best_dist, best_node) do best_node end
+  def choose_best_node([hd | tl], to_uid, best_dist, best_node) do
+    hd_name = elem(Map.fetch(hd, :uid), 1)
+    dist = suffix_distance(hd_name, to_uid)
+    cond do
+      dist > best_dist ->
+        #More letters match
+        choose_best_node(tl, to_uid, dist, hd)
+      dist < best_dist ->
+        choose_best_node(tl, to_uid, best_dist, best_node)
+      dist == best_dist ->
+        choose_best_node(tl, to_uid, best_dist, hd) #TODO not the best way of deciding how to break ties
+    end
+  end
+
+  def handle_call({:msg, to, jumps}, _from, state) do
+    my_name = elem(Map.fetch(state, :guid), 1)
+    to_name = elem(Map.fetch(to, :uid), 1)
+    cond do
+      my_name == to_name ->
+        IO.puts 'found'
+        {:reply, jumps, state}
+      true ->
+        level = suffix_distance(my_name, to_name)
+        next_node = find_next_node(level, state, to_name)
+        next_node_pid = elem(Map.fetch(next_node, :pid), 1)
+        num_jumps = GenServer.call(next_node_pid,{:msg, to, jumps+1})
+        {:reply, num_jumps, state}
+    end
+  end
+
+  def send_message(from, to) do
+    from_pid = elem(Map.fetch(from, :pid), 1)
+    GenServer.call(from_pid, {:msg, to, 0})
   end
 end
