@@ -4,15 +4,29 @@ defmodule Tapestry do
     #args = System.argv()
     args = ["10", "10"]
     case args do
-      [num_nodes, _num_requests] ->
+      [num_nodes, num_requests] ->
         num_nodes = String.to_integer(num_nodes)
-        #num_requests = String.to_integer(num_requests)
+        num_requests = String.to_integer(num_requests)
         Tapestry.DynamicSupervisor.start_link(args)
-        [hd | tl] = Tapestry.DynamicSupervisor.start_children(num_nodes, [])
+        nodes = Tapestry.DynamicSupervisor.start_children(num_nodes, [])
+        [hd | tl] = nodes
         Enum.map(tl, fn x -> init_tapestry(x, hd) end)
-        Tapestry.Server.get_neighbors(hd) #Should have uid 2, 3, 4, 5 as neighbors
+        maxlist = Enum.map(nodes, fn x -> do_message(x, nodes, num_requests, 0) end)
+        IO.puts Integer.to_string(Enum.max(maxlist))
       _ ->
         IO.puts 'Invalid arguments please put args: numNodes numRequests'
+    end
+  end
+
+  def do_message(from_node, node_list, 0, max) do max end
+  def do_message(from_node, node_list, num_requests_remaining, max) do
+    num_hops = 10 #TODO get num_hops between from_node and Enum.random(node_list)
+    do_message(from_node, node_list, num_requests_remaining-1, num_hops)
+    cond do
+      num_hops > max ->
+        do_message(from_node, node_list, num_requests_remaining-1, num_hops)
+      true ->
+        do_message(from_node, node_list, num_requests_remaining-1, max)
     end
   end
 
