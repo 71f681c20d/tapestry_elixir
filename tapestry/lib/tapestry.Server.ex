@@ -2,7 +2,7 @@ defmodule Tapestry.Server do
   use GenServer
 
   #init
-  def start_link (guid) do
+  def start_link(guid) do
       GenServer.start_link(__MODULE__, %{guid: "#{guid}", neighbors: []})
   end
 
@@ -103,6 +103,7 @@ defmodule Tapestry.Server do
     {_,neighbors} = elem(Map.fetch(state, :neighbors), level) # TODO Lee can you verify this pattern match?
     if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to, 0)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:object_router, x, level-1}) end)  # TODO: get x's pid to cast
     [from]  # Evals to the closest possible node, and each node along the way
+    {:noreply, state}
   end
 
   def route_to_node(from, to) do
@@ -121,5 +122,6 @@ defmodule Tapestry.Server do
     {_,neighbors} = elem(Map.fetch(state, :neighbors), level) # TODO Lee can you verify this pattern match?
     if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to, 0)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:node_router, x, level-1}) end)  # TODO: get x's pid to cast
     [from]  # Evals to the closest possible node, and each node along the way
+    {:noreply, state}
   end
 end

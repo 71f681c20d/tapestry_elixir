@@ -6,7 +6,7 @@ defmodule Tapestry.DynamicSupervisor do
   end
 
   def start_child(id_num) do
-    spec = %{id: id_num, start: {Tapestry.Server, :start_link, []}}
+    spec = %{id: id_num, start: {Tapestry.Server, :start_link, [id_num]}}
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
