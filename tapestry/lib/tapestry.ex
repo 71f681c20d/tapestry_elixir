@@ -2,7 +2,7 @@ defmodule Tapestry do
 
   def start(_type, _args) do
     #args = System.argv()
-    args = ["10", "4"]
+    args = ["10", "10"]
     case args do
       [num_nodes, num_requests] ->
         num_nodes = String.to_integer(num_nodes)
@@ -11,8 +11,8 @@ defmodule Tapestry do
         nodes = Tapestry.DynamicSupervisor.start_children(num_nodes, [])
         [hd | tl] = nodes
         Enum.map(tl, fn x -> init_tapestry(x, hd) end)
-        Enum.map(nodes, fn x -> do_message(x, nodes, num_requests, 0) end)
-        #IO.puts Integer.to_string(Enum.max(maxlist))
+        maxlist = Enum.map(nodes, fn x -> do_message(x, nodes, num_requests, 0) end)
+        IO.puts Integer.to_string(Enum.max(maxlist))
       _ ->
         IO.puts 'Invalid arguments please put args: numNodes numRequests'
     end

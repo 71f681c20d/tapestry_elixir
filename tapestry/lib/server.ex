@@ -3,7 +3,7 @@ defmodule Tapestry.Server do
 
   #init
   def start_link(guid) do
-      GenServer.start_link(__MODULE__, %{guid: "#{guid}", neighbors: []})
+      GenServer.start_link(__MODULE__, %{guid: "#{guid}", neighbors: {{ %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{} }, {  %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{} }, {  %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{} }, { %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{}, %{} }} }) #number of levels should match length of uid
   end
 
   def init(state) do
@@ -11,27 +11,25 @@ defmodule Tapestry.Server do
   end
 
   #join
-  def join([], called_list, _from) do called_list end
+  def join([], called_list, _from) do
+    called_list
+  end
 
-  def join(to_call_list, called_list, from) do                            # Recursively get neighbors from the level set in each celled's neighborhood
-    [hd | tl] = to_call_list                                              # TODO: pattern match will fail if there is only 1 element
-    pid = elem(Map.fetch(hd, :pid), 1)                                    # Get pid of the first entry in on-call list
-    res = GenServer.call(pid, {:join, from})                              # get a row from neighbor's DHT (call the node, get its neighbors)
-    called_list = [hd | called_list]                                      # Add the called node to the called list
-    lst = Enum.uniq(List.flatten([tl | res]))                             # Remove duplicate entries
-    lst2 = Enum.filter(lst, fn el -> !Enum.member?(called_list, el) end)  # Remove entries from to-call list if they are in the called list
-    lst2 = Enum.filter(lst2, fn x -> x != [] end)                         # Remove Null neighbors from DHT
-    join(lst2, called_list, from)                                         # Call the next neighbor (recursively)
+  def join(to_call_list, called_list, from) do
+    [hd | tl] = to_call_list
+    pid = elem(Map.fetch(hd, :pid), 1)
+    res = GenServer.call(pid, {:join, from})
+    called_list = [hd | called_list]
+    lst = Enum.uniq(List.flatten([tl | res]))
+    lst2 = Enum.filter(lst, fn el -> !Enum.member?(called_list, el) end)
+    lst2 = Enum.filter(lst2, fn x -> x != %{} end)
+    join(lst2, called_list, from)
   end
 
   def handle_call({:join, from_data}, _from, state) do
-    alpha = 1 # alpha is the level of the table that we want
-    neighbors = elem(Map.fetch(state, :neighbors), alpha)                 # get alphath row of neighbors DHT
-    neighbors2 = [from_data | neighbors]                                  # Add neighbors to your own DHT
-    neighbors2 = Enum.uniq(neighbors2)                                    # remove duplicates
-    neighbors2 = Enum.filter(neighbors2, fn x -> x != [] end)             # remove Null neighbors
-    state = Map.put(state, :neighbors, neighbors2)                        # Update the DHT with the new data
-    {:reply, neighbors, state}                                            # Send response
+    neighbors = flattened_dht(state)
+    state = add_to_dht(from_data, state)
+    {:reply, neighbors, state}
   end
 
   def join_from(from, to) do
@@ -40,11 +38,9 @@ defmodule Tapestry.Server do
   end
 
   def handle_call({:join_from, from, to}, _from, state) do
-    res = join([to], [], from)                                            # join to-from nodes together
-    neighbors = elem(Map.fetch(state, :neighbors), 1)                     # Get1st row of neighbor table
-    neighbors = Enum.filter([neighbors | res], fn x -> x != [] end)       # Add neighbors to existing DHT, Remove Null neighbors
-    state = Map.put(state, :neighbors, neighbors)                         # Push the updated DHT to the state variable
-    {:reply, state, state}                                                # Send response
+    res = join([to], [], from)
+    state = add_list_to_dht(res, state)
+    {:reply, state, state}
   end
 
   def get_neighbors(node) do
@@ -69,4 +65,29 @@ defmodule Tapestry.Server do
     end
   end
 
+  def add_list_to_dht([], state) do state end
+  def add_list_to_dht([hd | tl], state) do
+    new_state = add_to_dht(hd, state)
+    add_list_to_dht(tl, new_state)
+  end
+
+  def add_to_dht(node, state) do
+    my_name = elem(Map.fetch(state, :guid), 1)
+    node_name = elem(Map.fetch(node, :uid), 1)
+    dht = elem(Map.fetch(state, :neighbors), 1)
+    level = suffix_distance(my_name, node_name) - 1
+    this_level = elem(dht, level)
+    index = Enum.random(0..15) #TODO fix
+    this_level = Tuple.delete_at(this_level, index)
+    this_level = Tuple.insert_at(this_level, index, node)
+    dht = Tuple.delete_at(dht, level)
+    dht = Tuple.insert_at(dht, level, this_level)
+    Map.put(state, :neighbors, dht)
+  end
+
+  def flattened_dht(state) do
+    dht = elem(Map.fetch(state, :neighbors), 1)
+    list_of_tuples = Tuple.to_list(dht)
+    List.flatten(Enum.map(list_of_tuples, fn x -> Tuple.to_list(x) end))
+  end
 end
