@@ -2,8 +2,8 @@ defmodule Tapestry.Server do
   use GenServer
 
   #init
-  def start_link do
-      GenServer.start_link(__MODULE__, %{neighbors: []})
+  def start_link(guid) do
+      GenServer.start_link(__MODULE__, %{guid: "#{guid}", neighbors: []})
   end
 
   def init(state) do
