@@ -56,4 +56,17 @@ defmodule Tapestry.Server do
     neighbors = elem(Map.fetch(state, :neighbors), 1)
     {:reply, neighbors, state}
   end
+
+  def suffix_distance(guid_from, guid_to), do: suffix_distance(guid_from, guid_to, 0)
+  def suffix_distance(_hash, "", level), do: :ok # computes the suffix distance metric of 2 strings
+  def suffix_distance("", _hash, level), do: :ok
+  def suffix_distance(guid_from, guid_to, level) do
+    {hf,tf} = guid_from |> String.next_grapheme
+    {ht,tt} = guid_to |> String.next_grapheme
+    cond do
+      hf == ht -> suffix_distance(tf,tt,level+1)
+      hf != ht -> level
+    end
+  end
+
 end
