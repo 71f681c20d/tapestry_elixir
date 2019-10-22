@@ -12,7 +12,7 @@ defmodule Tapestry do
         #num_requests = String.to_integer(num_requests)
         Tapestry.DynamicSupervisor.start_link(args)     # TODO change this
         nodes = Tapestry.DynamicSupervisor.start_children(num_nodes, [])
-        nodes
+        # nodes
         # Enum.map(nodes, fn x -> init_node(x))         # topology is self-organizing. nodes only need to be initialized
 
 

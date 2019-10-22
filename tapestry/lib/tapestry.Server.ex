@@ -33,7 +33,7 @@ defmodule Tapestry.Server do
   end
 
   def handle_call({:join, from_data, level}, _from, state) do               # TODO: make the DHT an ordered set, for each of its levels (16), so we know what level to hop to
-    neighbors = elem(elem(Map.fetch(state, :neighbors), 1), level)
+    neighbors = elem(Map.fetch(state, :neighbors), 1)
     neighbors2 = [[from_data] | neighbors]                                  # Add neighbors to your own DHT
     state = Map.put(state, :neighbors, neighbors2)                          # Update the DHT with the new data
     {:reply, neighbors, state}                                              # Send response
