@@ -70,12 +70,13 @@ defmodule Tapestry.Server do
     pid_from = elem(Map.fetch(from, :pid), 1)
     from_guid = elem(Map.fetch(from, :uid), 1)
     to_guid = elem(Map.fetch(to, :uid), 1)
-    GenServer.call(pid_from, {:suffix_distance, from_guid, to_guid})
+    check(from_guid,to_guid,0)
+    # GenServer.call(pid_from, {:suffix_distance, from_guid, to_guid})
   end
 
-  def handle_call({:suffix_distance, from_guid, to_guid}, _from, state) do
-    {:reply, check(from_guid,to_guid,0), state}
-  end
+  # def handle_call({:suffix_distance, from_guid, to_guid}, _from, state) do
+  #   {:reply, , state}
+  # end
 
   def get_neighbors(node) do
     pid = elem(Map.fetch(node, :pid), 1)
@@ -119,7 +120,7 @@ defmodule Tapestry.Server do
     from_guid = elem(Map.fetch(state, :guid), 1)
     dest_guid = elem(Map.fetch(to, :uid), 1)
     # object_router(from, to, level-1)
-    {_,neighbors} = elem(Map.fetch(state, :neighbors), level) # TODO Lee can you verify this pattern match?
+    neighbors = elem(Map.fetch(state, :neighbors), 1)
     if level > 0, do: Enum.map(neighbors, fn x -> if check(x, to, 0)>level, do: GenServer.cast(elem(Map.fetch(x, :pid), 1), {:node_router, x, level-1}) end)  # TODO: get x's pid to cast
     [from]  # Evals to the closest possible node, and each node along the way
     {:noreply, state}
