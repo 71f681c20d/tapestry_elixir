@@ -1,6 +1,7 @@
 defmodule Tapestry do
 
   def start(_type, _args) do
+    IO.puts("hello")
     #args = System.argv()
     args = ["10", "10"]
     case args do
