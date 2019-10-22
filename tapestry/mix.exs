@@ -13,6 +13,7 @@ defmodule Tapestry.MixProject do
 
   # Run "mix help compile.app" to learn about applications.
   def application do
+    :observer.start()
     [
       #mod: {Tapestry, []},
       extra_applications: [:logger]

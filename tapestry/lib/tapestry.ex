@@ -1,7 +1,9 @@
 defmodule Tapestry do
 
   def start(_type, _args) do    # Builds the Tapestry topology
+    # :observer.start()
     #args = System.argv()
+
     args = ["10", "10"]
 
     case args do
