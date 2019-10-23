@@ -77,7 +77,8 @@ defmodule Tapestry.Server do
     dht = elem(Map.fetch(state, :neighbors), 1)
     level = suffix_distance(my_name, node_name) - 1
     this_level = elem(dht, level)
-    index = Enum.random(0..15) #TODO fix
+    #index = Enum.random(0..15) #TODO fix
+    index =  elem(Integer.parse(String.at(node_name, level+1), 16), 0)
     this_level = Tuple.delete_at(this_level, index)
     this_level = Tuple.insert_at(this_level, index, node)
     dht = Tuple.delete_at(dht, level)
@@ -91,8 +92,7 @@ defmodule Tapestry.Server do
     List.flatten(Enum.map(list_of_tuples, fn x -> Tuple.to_list(x) end))
   end
 
-  #Route
-
+  #Routing
   def find_next_node(-1, _state, _to_uid) do
     IO.puts 'ERROR'
     :error_no_next_node_found
@@ -121,28 +121,36 @@ defmodule Tapestry.Server do
       dist < best_dist ->
         choose_best_node(tl, to_uid, best_dist, best_node)
       dist == best_dist ->
-        choose_best_node(tl, to_uid, best_dist, hd) #TODO not the best way of deciding how to break ties
+        choose_best_node(tl, to_uid, best_dist, Enum.random([hd | tl]))
     end
   end
 
-  def handle_call({:msg, to, jumps}, _from, state) do
+  def handle_cast({:msg, to, jumps, og_pid}, state) do
     my_name = elem(Map.fetch(state, :guid), 1)
     to_name = elem(Map.fetch(to, :uid), 1)
     cond do
       my_name == to_name ->
-        IO.puts 'found'
-        {:reply, jumps, state}
+        GenServer.cast(og_pid, {:found, jumps, to})
+        {:noreply, state}
       true ->
         level = suffix_distance(my_name, to_name)
         next_node = find_next_node(level, state, to_name)
         next_node_pid = elem(Map.fetch(next_node, :pid), 1)
-        num_jumps = GenServer.call(next_node_pid,{:msg, to, jumps+1})
-        {:reply, num_jumps, state}
+        GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})
+        {:noreply, state}
     end
   end
 
-  def send_message(from, to) do
+  def send_message(from, to, listener_pid) do
     from_pid = elem(Map.fetch(from, :pid), 1)
-    GenServer.call(from_pid, {:msg, to, 0})
+    GenServer.cast(from_pid, {:msg, to, 0, listener_pid})
+  end
+
+
+  def handle_cast({:found, jumps, to}, state) do
+    to_id = elem(Map.fetch(to, :uid), 1)
+    my_uid = elem(Map.fetch(state, :guid), 1)
+    IO.inspect( Enum.join( [Enum.join([my_uid, to_id], "- to ->"), Integer.to_string(jumps)], " in jumps: " ) )
+    {:noreply, state}
   end
 end

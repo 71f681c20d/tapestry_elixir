@@ -16,6 +16,19 @@ defmodule Tapestry.DynamicSupervisor do
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
+  def start_listener(num_expected) do
+    spec = %{id: "Super", start: {Tapestry.Server.Listener, :start_link, [num_expected, 0]}}
+    DynamicSupervisor.start_child(__MODULE__, spec)
+  end
+
+  def count_children do
+    DynamicSupervisor.count_children(__MODULE__)
+  end
+
+  def terminate_child(pid) do
+    DynamicSupervisor.terminate_child(__MODULE__, pid)
+  end
+
   def start_children(0, list) do
     list
   end
