@@ -1,9 +1,9 @@
 defmodule Tapestry do
 
   def start(_type, _args) do
-    #args = System.argv()
+    args = System.argv()
     :observer.start
-    args = ["100", "3"]
+    #args = ["100", "3"]
     case args do
       [num_nodes, num_requests] ->
         num_nodes = String.to_integer(num_nodes)
@@ -24,7 +24,7 @@ defmodule Tapestry do
   def do_message(from_node, node_list, num_requests_remaining, listener_pid) do
     to_node = Enum.random(node_list -- [from_node])
     Tapestry.Server.send_message(from_node, to_node, listener_pid)
-    IO.inspect(Enum.join(["Initiating from", elem(Map.fetch(from_node, :uid),1), "to", elem(Map.fetch(to_node, :uid),1)], " "))
+    #IO.inspect(Enum.join(["Initiating from", elem(Map.fetch(from_node, :uid),1), "to", elem(Map.fetch(to_node, :uid),1)], " "))
     do_message(from_node, node_list, num_requests_remaining-1, listener_pid)
   end
 
