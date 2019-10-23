@@ -140,10 +140,8 @@ defmodule Tapestry.Server do
       true ->
         level = suffix_distance(my_name, to_name) - 1
         next_node_list = Enum.filter(find_next_node(level, state, to_name), fn x -> x != [] end)
-        Enum.map(next_node_list, fn next_node ->
-          next_node_pid = elem(Map.fetch(next_node, :pid), 1)
-          GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})    # Jump to the next peer, increment hops
-        end)
+        next_node_pid = elem(Map.fetch(Enum.random(next_node_list), :pid), 1) # TODO Alex please check this, cant cast to every node on level as will create excess traffic and the end node will receive message multiple times
+        GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})
         {:noreply, state} # send response
     end
   end
