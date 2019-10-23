@@ -138,7 +138,7 @@ defmodule Tapestry.Server do
         GenServer.cast(og_pid, {:found, jumps, to_name})
         {:noreply, state}
       true ->
-        level = suffix_distance(my_name, to_name) - 1 #??
+        level = suffix_distance(my_name, to_name) - 1
         next_node_list = Enum.filter(find_next_node(level, state, to_name), fn x -> x != [] end)
         Enum.map(next_node_list, fn next_node ->
           next_node_pid = elem(Map.fetch(next_node, :pid), 1)
