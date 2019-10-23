@@ -127,14 +127,14 @@ defmodule Tapestry.Server do
   # Handle sending of message
   def send_message(from, to, listener_pid) do
     from_pid = elem(Map.fetch(from, :pid), 1)
-    GenServer.cast(from_pid, {:msg, to, 0, listener_pid})
+    GenServer.cast(from_pid, {:msg, to, 0, listener_pid})   # Start off with 0 jumps
   end
 
   def handle_cast({:msg, to, jumps, og_pid}, state) do
     my_name = elem(Map.fetch(state, :guid), 1)
     to_name = elem(Map.fetch(to, :uid), 1)
     cond do
-      my_name == to_name ->
+      my_name == to_name ->                       # If you are already at the terminating node
         GenServer.cast(og_pid, {:found, jumps, to_name})
         {:noreply, state}
       true ->
@@ -142,9 +142,9 @@ defmodule Tapestry.Server do
         next_node_list = Enum.filter(find_next_node(level, state, to_name), fn x -> x != [] end)
         Enum.map(next_node_list, fn next_node ->
           next_node_pid = elem(Map.fetch(next_node, :pid), 1)
-          GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})
+          GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})    # Jump to the next peer, increment hops
         end)
-        {:noreply, state}
+        {:noreply, state} # send response
     end
   end
 end
