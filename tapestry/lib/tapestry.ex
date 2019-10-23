@@ -14,7 +14,7 @@ defmodule Tapestry do
         [hd | tl] = nodes
         Enum.map(tl, fn x -> init_tapestry(x, hd) end)
         Enum.map(nodes, fn x -> do_message(x, nodes, num_requests, listener) end)
-        loop(num_nodes + 1)
+        loop(num_nodes + 1) #TODO Busy wait not ideal
       _ ->
         IO.puts 'Invalid arguments please put args: numNodes numRequests'
     end

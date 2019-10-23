@@ -10,11 +10,12 @@ defmodule Tapestry.Server do
     {:ok, state}
   end
 
-  #join
-  def join([], called_list, _from) do
-    called_list
-  end
+  #-----------------------------------------------------------------------
+  # Join
+  #-----------------------------------------------------------------------
 
+  # Join a node to the network, get a list of all nodes in network
+  def join([], called_list, _from) do called_list end
   def join(to_call_list, called_list, from) do
     [hd | tl] = to_call_list
     pid = elem(Map.fetch(hd, :pid), 1)
@@ -32,6 +33,7 @@ defmodule Tapestry.Server do
     {:reply, neighbors, state}
   end
 
+  # Use join_from to initiate node to attempt to join network
   def join_from(from, to) do
     pid_from = elem(Map.fetch(from, :pid), 1)
     GenServer.call(pid_from, {:join_from, from, to})
@@ -43,17 +45,8 @@ defmodule Tapestry.Server do
     {:reply, state, state}
   end
 
-  def get_neighbors(node) do
-    pid = elem(Map.fetch(node, :pid), 1)
-    GenServer.call(pid, :get_neighbors)
-  end
-
-  def handle_call(:get_neighbors, _from, state) do
-    neighbors = elem(Map.fetch(state, :neighbors), 1)
-    {:reply, neighbors, state}
-  end
-
-  def suffix_distance(guid_from, guid_to), do: suffix_distance(guid_from, guid_to, 0) # computes the suffix distance metric of 2 strings
+  # Computes the suffix distance metric of 2 strings
+  def suffix_distance(guid_from, guid_to), do: suffix_distance(guid_from, guid_to, 0)
   def suffix_distance(_hash, "", level), do: level
   def suffix_distance("", _hash, level), do: level
   def suffix_distance(guid_from, guid_to, level) do
@@ -65,12 +58,12 @@ defmodule Tapestry.Server do
     end
   end
 
+  # Adds neighbor to the dht at the proper level, its column value is equal to char at level
   def add_list_to_dht([], state) do state end
   def add_list_to_dht([hd | tl], state) do
     new_state = add_to_dht(hd, state)
     add_list_to_dht(tl, new_state)
   end
-
   def add_to_dht(node, state) do
     my_name = elem(Map.fetch(state, :guid), 1)
     node_name = elem(Map.fetch(node, :uid), 1)
@@ -85,13 +78,19 @@ defmodule Tapestry.Server do
     Map.put(state, :neighbors, dht)
   end
 
+  #Flatten the dht into a list for transmission
   def flattened_dht(state) do
     dht = elem(Map.fetch(state, :neighbors), 1)
     list_of_tuples = Tuple.to_list(dht)
     List.flatten(Enum.map(list_of_tuples, fn x -> Tuple.to_list(x) end))
   end
 
+  #-----------------------------------------------------------------------
   #Routing
+  #-----------------------------------------------------------------------
+
+  # Determine the nodes that should be called with the message
+  # Wraps choose_best node
   def find_next_node(-1, _state, _to_uid) do
     IO.puts 'ERROR'
     :error_no_next_node_found
@@ -108,6 +107,7 @@ defmodule Tapestry.Server do
     end
   end
 
+  #Determines the best nodes to call at A specific level
   def choose_best_node(list, to_uid) do choose_best_node(list, to_uid, 0, []) end
   def choose_best_node([], _to_uid, _best_dist, best_node) do best_node end
   def choose_best_node([hd | tl], to_uid, best_dist, best_node) do
@@ -122,6 +122,12 @@ defmodule Tapestry.Server do
       dist == best_dist ->
         choose_best_node(tl, to_uid, best_dist, [ hd | best_node])
     end
+  end
+
+  # Handle sending of message
+  def send_message(from, to, listener_pid) do
+    from_pid = elem(Map.fetch(from, :pid), 1)
+    GenServer.cast(from_pid, {:msg, to, 0, listener_pid})
   end
 
   def handle_cast({:msg, to, jumps, og_pid}, state) do
@@ -140,17 +146,5 @@ defmodule Tapestry.Server do
         end)
         {:noreply, state}
     end
-  end
-
-  def send_message(from, to, listener_pid) do
-    from_pid = elem(Map.fetch(from, :pid), 1)
-    GenServer.cast(from_pid, {:msg, to, 0, listener_pid})
-  end
-
-  def handle_cast({:found, jumps, to}, state) do
-    to_id = elem(Map.fetch(to, :uid), 1)
-    my_uid = elem(Map.fetch(state, :guid), 1)
-    IO.inspect( Enum.join( [Enum.join([my_uid, to_id], "- to ->"), Integer.to_string(jumps)], " in jumps: " ) )
-    {:noreply, state}
   end
 end
