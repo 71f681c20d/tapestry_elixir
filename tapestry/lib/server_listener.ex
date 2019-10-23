@@ -9,7 +9,7 @@ end
     {:ok, state}
   end
 
-  def handle_cast({:found, jumps, to}, state) do
+  def handle_cast({:found, _jumps, _to}, state) do
     num_received = elem(Map.fetch(state, :num_received), 1) + 1
     num_expected = elem(Map.fetch(state, :num_expected), 1)
     cond do

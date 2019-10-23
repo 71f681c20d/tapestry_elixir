@@ -1,9 +1,9 @@
 defmodule Tapestry do
 
   def start(_type, _args) do
-    args = System.argv()
+    #args = System.argv()
     :observer.start
-    #args = ["10", "1"]
+    args = ["10", "1"]
     case args do
       [num_nodes, num_requests] ->
         num_nodes = String.to_integer(num_nodes)

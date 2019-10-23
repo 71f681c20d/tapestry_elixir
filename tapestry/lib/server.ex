@@ -77,7 +77,6 @@ defmodule Tapestry.Server do
     dht = elem(Map.fetch(state, :neighbors), 1)
     level = suffix_distance(my_name, node_name) - 1
     this_level = elem(dht, level)
-    #index = Enum.random(0..15) #TODO fix
     index =  elem(Integer.parse(String.at(node_name, level), 16), 0)
     this_level = Tuple.delete_at(this_level, index)
     this_level = Tuple.insert_at(this_level, index, node)
