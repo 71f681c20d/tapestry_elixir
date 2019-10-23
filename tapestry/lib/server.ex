@@ -108,7 +108,7 @@ defmodule Tapestry.Server do
     end
   end
 
-  def choose_best_node(list, to_uid) do choose_best_node(list, to_uid, 0, nil) end
+  def choose_best_node(list, to_uid) do choose_best_node(list, to_uid, 0, []) end
   def choose_best_node([], _to_uid, _best_dist, best_node) do best_node end
   def choose_best_node([hd | tl], to_uid, best_dist, best_node) do
     hd_name = elem(Map.fetch(hd, :uid), 1)
@@ -116,11 +116,11 @@ defmodule Tapestry.Server do
     cond do
       dist > best_dist ->
         #More letters match
-        choose_best_node(tl, to_uid, dist, hd)
+        choose_best_node(tl, to_uid, dist, [hd])
       dist < best_dist ->
         choose_best_node(tl, to_uid, best_dist, best_node)
       dist == best_dist ->
-        choose_best_node(tl, to_uid, best_dist, Enum.random([hd | tl]))
+        choose_best_node(tl, to_uid, best_dist, [ hd | best_node])
     end
   end
 
@@ -133,9 +133,11 @@ defmodule Tapestry.Server do
         {:noreply, state}
       true ->
         level = suffix_distance(my_name, to_name)
-        next_node = find_next_node(level, state, to_name)
-        next_node_pid = elem(Map.fetch(next_node, :pid), 1)
-        GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})
+        next_node_list = Enum.filter(find_next_node(level, state, to_name), fn x -> x != [] end)
+        Enum.map(next_node_list, fn next_node ->
+          next_node_pid = elem(Map.fetch(next_node, :pid), 1)
+          GenServer.cast(next_node_pid, {:msg, to, jumps+1, og_pid})
+        end)
         {:noreply, state}
     end
   end
@@ -144,7 +146,6 @@ defmodule Tapestry.Server do
     from_pid = elem(Map.fetch(from, :pid), 1)
     GenServer.cast(from_pid, {:msg, to, 0, listener_pid})
   end
-
 
   def handle_cast({:found, jumps, to}, state) do
     to_id = elem(Map.fetch(to, :uid), 1)
